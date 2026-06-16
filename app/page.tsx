@@ -27,7 +27,7 @@ const LANGUAGES = [
 ];
 
 const ERROR_MESSAGES: Record<string, string> = {
-  no_results: "No articles found — try a broader topic or different language.",
+  no_results: "No articles found — try a broader topic, different language, or higher word limit.",
   source_unavailable: "News source unavailable. Try again in a moment.",
   quota_exceeded: "Daily request limit reached. Try again tomorrow.",
   server_misconfigured: "Server configuration error.",
@@ -36,6 +36,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default function Home() {
   const [lang, setLang] = useState("fr");
   const [topic, setTopic] = useState("");
+  const [maxWordsEnabled, setMaxWordsEnabled] = useState(false);
+  const [maxWords, setMaxWords] = useState(300);
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,7 @@ export default function Home() {
 
     const params = new URLSearchParams({ lang });
     if (topic.trim()) params.set("topic", topic.trim());
+    if (maxWordsEnabled) params.set("maxWords", String(maxWords));
 
     try {
       const res = await fetch(`/api/article?${params}`);
@@ -97,6 +100,26 @@ export default function Home() {
           />
         </div>
 
+        <label className="flex items-center gap-2 text-sm text-gray-400">
+          <input
+            type="checkbox"
+            checked={maxWordsEnabled}
+            onChange={(e) => setMaxWordsEnabled(e.target.checked)}
+            className="rounded border-gray-700 bg-gray-800 focus:ring-blue-500"
+          />
+          Max word count
+          <input
+            type="number"
+            min={10}
+            step={10}
+            value={maxWords}
+            disabled={!maxWordsEnabled}
+            onChange={(e) => setMaxWords(Math.max(10, parseInt(e.target.value, 10) || 10))}
+            className="w-20 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          words
+        </label>
+
         <button
           onClick={generate}
           disabled={loading}
@@ -134,6 +157,8 @@ export default function Home() {
           </div>
 
           <h2 className="text-lg font-semibold leading-snug">{article.title}</h2>
+
+          <span className="text-xs text-gray-500">{article.wordCount} words</span>
 
           {article.description && (
             <p className="text-sm text-gray-400 leading-relaxed">{article.description}</p>
