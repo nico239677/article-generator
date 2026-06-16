@@ -6,6 +6,7 @@ export interface Article {
   source_name: string;
   pubDate: string;
   description: string | null;
+  content: string | null;
   wordCount: number;
 }
 
@@ -27,12 +28,17 @@ function countWords(text: string | null | undefined): number {
   return trimmed.split(/\s+/).length;
 }
 
-function articleWordCount(article: NewsDataResult): number {
-  // free tier locks `content` behind a placeholder string — fall back to description
+function fullContent(article: NewsDataResult): string | null {
+  // free tier locks `content` behind a placeholder string — only return real content
   if (article.content && !article.content.includes(PAID_ONLY_PLACEHOLDER)) {
-    return countWords(article.content);
+    return article.content;
   }
-  return countWords(article.description);
+  return null;
+}
+
+function articleWordCount(article: NewsDataResult): number {
+  const content = fullContent(article);
+  return content ? countWords(content) : countWords(article.description);
 }
 
 export async function GET(req: NextRequest) {
@@ -109,6 +115,7 @@ export async function GET(req: NextRequest) {
     source_name: article.source_name,
     pubDate: article.pubDate,
     description: article.description ?? null,
+    content: fullContent(article),
     wordCount: articleWordCount(article),
   } satisfies Article);
 }

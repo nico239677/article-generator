@@ -70,6 +70,7 @@ export default function Home() {
   const [speechState, setSpeechState] = useState<"idle" | "playing" | "paused">("idle");
   const [speechSupported, setSpeechSupported] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     setSpeechSupported(typeof window !== "undefined" && "speechSynthesis" in window);
@@ -113,6 +114,7 @@ export default function Home() {
 
   async function generate() {
     stopSpeech();
+    setExpanded(false);
     setLoading(true);
     setError(null);
     setArticle(null);
@@ -244,7 +246,27 @@ export default function Home() {
             <p className="text-sm text-gray-400 leading-relaxed">{article.description}</p>
           )}
 
+          {expanded && (
+            <div className="text-sm text-gray-300 leading-relaxed border-t border-gray-800 pt-3">
+              {article.content ? (
+                <p className="whitespace-pre-line">{article.content}</p>
+              ) : (
+                <p className="text-gray-500 italic">
+                  Full text not provided by the source for this article — read it on the
+                  original site below.
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-3 mt-1">
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="text-gray-300 hover:text-white text-sm font-medium transition-colors"
+            >
+              {expanded ? "Collapse ↑" : "Expand ↓"}
+            </button>
+
             <a
               href={article.link}
               target="_blank"
