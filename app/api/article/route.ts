@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const lang = searchParams.get("lang");
   const topic = searchParams.get("topic") || "";
+  const media = searchParams.get("media") || "";
   const maxWordsParam = searchParams.get("maxWords");
   const maxWords = maxWordsParam ? parseInt(maxWordsParam, 10) : null;
 
@@ -59,9 +60,15 @@ export async function GET(req: NextRequest) {
     apikey: apiKey,
     language: lang,
     ...(topic ? { q: topic } : {}),
+    ...(media ? { domain: media } : {}),
   });
 
-  let data: { status: string; results?: NewsDataResult[]; message?: string };
+  let data: {
+    status: string;
+    results?: NewsDataResult[];
+    message?: string;
+    results_error?: { code?: string; message?: string };
+  };
   try {
     const res = await fetch(`https://newsdata.io/api/1/news?${params}`, {
       next: { revalidate: 0 },
@@ -69,6 +76,9 @@ export async function GET(req: NextRequest) {
     if (!res.ok) {
       const text = await res.text();
       console.error("NewsData error", res.status, text);
+      if (media && text.includes("UnsupportedFilter") && text.includes("domain")) {
+        return NextResponse.json({ error: "invalid_media" }, { status: 422 });
+      }
       return NextResponse.json({ error: "source_unavailable" }, { status: 503 });
     }
     data = await res.json();

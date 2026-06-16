@@ -31,11 +31,13 @@ const ERROR_MESSAGES: Record<string, string> = {
   source_unavailable: "News source unavailable. Try again in a moment.",
   quota_exceeded: "Daily request limit reached. Try again tomorrow.",
   server_misconfigured: "Server configuration error.",
+  invalid_media: "Unknown media — try a different name (e.g. lemonde, bbc, cnn).",
 };
 
 export default function Home() {
   const [lang, setLang] = useState("fr");
   const [topic, setTopic] = useState("");
+  const [media, setMedia] = useState("");
   const [maxWordsEnabled, setMaxWordsEnabled] = useState(false);
   const [maxWords, setMaxWords] = useState(300);
   const [article, setArticle] = useState<Article | null>(null);
@@ -49,6 +51,7 @@ export default function Home() {
 
     const params = new URLSearchParams({ lang });
     if (topic.trim()) params.set("topic", topic.trim());
+    if (media.trim()) params.set("media", media.trim());
     if (maxWordsEnabled) params.set("maxWords", String(maxWords));
 
     try {
@@ -99,6 +102,15 @@ export default function Home() {
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+
+        <input
+          type="text"
+          placeholder="Media (optional, e.g. lemonde, bbc, cnn)"
+          value={media}
+          onChange={(e) => setMedia(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && generate()}
+          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
 
         <label className="flex items-center gap-2 text-sm text-gray-400">
           <input
