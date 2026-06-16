@@ -1,7 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Article } from "./api/article/route";
+
+// 2-letter NewsData language code -> BCP-47 locale for SpeechSynthesis
+const SPEECH_LOCALE: Record<string, string> = {
+  en: "en-US",
+  fr: "fr-FR",
+  es: "es-ES",
+  de: "de-DE",
+  pt: "pt-PT",
+  ja: "ja-JP",
+  zh: "zh-CN",
+  ko: "ko-KR",
+  it: "it-IT",
+  nl: "nl-NL",
+  ru: "ru-RU",
+  ar: "ar-SA",
+  hi: "hi-IN",
+  sv: "sv-SE",
+  pl: "pl-PL",
+  tr: "tr-TR",
+  id: "id-ID",
+  vi: "vi-VN",
+  th: "th-TH",
+  uk: "uk-UA",
+};
 
 const LANGUAGES = [
   { code: "en", name: "English" },
@@ -43,8 +67,52 @@ export default function Home() {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [speechState, setSpeechState] = useState<"idle" | "playing" | "paused">("idle");
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  useEffect(() => {
+    setSpeechSupported(typeof window !== "undefined" && "speechSynthesis" in window);
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  function stopSpeech() {
+    window.speechSynthesis.cancel();
+    setSpeechState("idle");
+  }
+
+  function toggleSpeech() {
+    if (!article) return;
+
+    if (speechState === "playing") {
+      window.speechSynthesis.pause();
+      setSpeechState("paused");
+      return;
+    }
+    if (speechState === "paused") {
+      window.speechSynthesis.resume();
+      setSpeechState("playing");
+      return;
+    }
+
+    const text = [article.title, article.description].filter(Boolean).join(". ");
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = SPEECH_LOCALE[lang] ?? lang;
+    utterance.onend = () => setSpeechState("idle");
+    utterance.onerror = () => setSpeechState("idle");
+    utteranceRef.current = utterance;
+
+    window.speechSynthesis.cancel(); // clear any stale queue
+    window.speechSynthesis.speak(utterance);
+    setSpeechState("playing");
+  }
 
   async function generate() {
+    stopSpeech();
     setLoading(true);
     setError(null);
     setArticle(null);
@@ -176,14 +244,39 @@ export default function Home() {
             <p className="text-sm text-gray-400 leading-relaxed">{article.description}</p>
           )}
 
-          <a
-            href={article.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
-          >
-            Read article →
-          </a>
+          <div className="flex items-center gap-3 mt-1">
+            <a
+              href={article.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+            >
+              Read article →
+            </a>
+
+            {speechSupported && (
+              <button
+                onClick={toggleSpeech}
+                className="flex items-center gap-1.5 text-gray-300 hover:text-white text-sm font-medium transition-colors ml-auto"
+              >
+                {speechState === "playing" ? (
+                  <>⏸ Pause</>
+                ) : speechState === "paused" ? (
+                  <>▶ Resume</>
+                ) : (
+                  <>🔊 Listen</>
+                )}
+              </button>
+            )}
+            {speechState !== "idle" && (
+              <button
+                onClick={stopSpeech}
+                className="text-gray-500 hover:text-gray-300 text-sm transition-colors"
+              >
+                ⏹
+              </button>
+            )}
+          </div>
         </div>
       )}
     </main>
