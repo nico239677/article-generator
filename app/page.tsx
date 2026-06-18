@@ -27,7 +27,13 @@ const SPEECH_LOCALE: Record<string, string> = {
   uk: "uk-UA",
 };
 
-const LANGUAGES = [
+interface Language {
+  code: string;
+  name: string;
+  mediaPreset?: string;
+}
+
+const LANGUAGES: Language[] = [
   { code: "en", name: "English" },
   { code: "fr", name: "French" },
   { code: "es", name: "Spanish" },
@@ -39,7 +45,8 @@ const LANGUAGES = [
   { code: "it", name: "Italian" },
   { code: "nl", name: "Dutch" },
   { code: "ru", name: "Russian" },
-  { code: "ar", name: "Arabic" },
+  { code: "ar", name: "Arabic (MSA)", mediaPreset: "aljazeera,alarabiya,bbc" },
+  { code: "ar", name: "Arabic (Levantine)", mediaPreset: "naharnet,annahar,dailystar" },
   { code: "hi", name: "Hindi" },
   { code: "sv", name: "Swedish" },
   { code: "pl", name: "Polish" },
@@ -152,13 +159,18 @@ export default function Home() {
       <div className="flex flex-col gap-3">
         <div className="flex gap-2">
           <select
-            value={lang}
-            onChange={(e) => setLang(e.target.value)}
+            value={LANGUAGES.find((l) => l.code === lang && (l.mediaPreset ?? "") === media)?.name ?? lang}
+            onChange={(e) => {
+              const selected = LANGUAGES.find((l) => l.name === e.target.value);
+              if (!selected) return;
+              setLang(selected.code);
+              if (selected.mediaPreset !== undefined) setMedia(selected.mediaPreset);
+            }}
             className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.name} ({l.code})
+              <option key={l.name} value={l.name}>
+                {l.name}
               </option>
             ))}
           </select>
